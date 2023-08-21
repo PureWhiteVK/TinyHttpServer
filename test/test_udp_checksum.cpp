@@ -1,5 +1,6 @@
 #include <spdlog/spdlog.h>
 #include <sstream>
+#include <array>
 
 uint16_t checksum(uint8_t *data, size_t size, uint32_t source_ip,
                   uint32_t target_ip) {
@@ -11,6 +12,7 @@ uint16_t checksum(uint8_t *data, size_t size, uint32_t source_ip,
   res += (target_ip & 0xffff);
   res += 17;
   res += size;
+  // actual udp packet
   int i = 0;
   while (i < size) {
     uint16_t byte0 = data[i];

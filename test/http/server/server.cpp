@@ -10,8 +10,10 @@
 
 #include "server.hpp"
 #include <signal.h>
-#include <utility>
 #include <spdlog/spdlog.h>
+#include <string>
+#include <utility>
+
 
 namespace http {
 namespace server {
@@ -38,7 +40,11 @@ server::server(const std::string &address, const std::string &port,
   acceptor_.set_option(asio::ip::tcp::acceptor::reuse_address(true));
   acceptor_.bind(endpoint);
   acceptor_.listen();
-  spdlog::info("start server at: {}:{}",address, port);
+  std::string address_str{endpoint.address().to_string()};
+  if (address_str == "0.0.0.0") {
+    address_str = "localhost";
+  }
+  spdlog::info("start server at: http://{}:{}", address_str, endpoint.port());
   do_accept();
 }
 
@@ -73,7 +79,7 @@ void server::do_await_stop() {
     // The server is stopped by cancelling all outstanding asynchronous
     // operations. Once all operations have finished the io_context::run()
     // call will exit.
-    spdlog::info("receive signal: {}, server exit!",signo);
+    spdlog::info("receive signal: {}, server exit!", signo);
     acceptor_.close();
     connection_manager_.stop_all();
   });
