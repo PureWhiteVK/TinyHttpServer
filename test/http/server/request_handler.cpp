@@ -23,20 +23,20 @@ namespace server {
 request_handler::request_handler(const std::string &doc_root)
     : doc_root_(doc_root) {}
 
-void request_handler::handle_request(const request &req, reply &rep) {
+void request_handler::handle_request(const request &req, response &rep) {
   spdlog::info("request: {} {} HTTP/{}.{}", req.method, req.uri, req.http_version_major,
                req.http_version_minor);
   // Decode url to path.
   std::string request_path;
   if (!url_decode(req.uri, request_path)) {
-    rep = reply::stock_reply(reply::bad_request);
+    rep = response::default_response(response::bad_request);
     return;
   }
 
   // Request path must be absolute and not contain "..".
   if (request_path.empty() || request_path[0] != '/' ||
       request_path.find("..") != std::string::npos) {
-    rep = reply::stock_reply(reply::bad_request);
+    rep = response::default_response(response::bad_request);
     return;
   }
 
@@ -57,12 +57,12 @@ void request_handler::handle_request(const request &req, reply &rep) {
   std::string full_path = doc_root_ + request_path;
   std::ifstream is(full_path.c_str(), std::ios::in | std::ios::binary);
   if (!is) {
-    rep = reply::stock_reply(reply::not_found);
+    rep = response::default_response(response::not_found);
     return;
   }
 
   // Fill out the reply to be sent to the client.
-  rep.status = reply::ok;
+  rep.status = response::ok;
   char buf[512];
   while (is.read(buf, sizeof(buf)).gcount() > 0)
     rep.content.append(buf, is.gcount());

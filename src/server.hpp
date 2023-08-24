@@ -1,36 +1,26 @@
-//
-// server.hpp
-// ~~~~~~~~~~
-//
-// Copyright (c) 2003-2023 Christopher M. Kohlhoff (chris at kohlhoff dot com)
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
-//
-
 #ifndef HTTP_SERVER_HPP
 #define HTTP_SERVER_HPP
 
-#include <asio.hpp>
-#include <string>
 #include "connection.hpp"
 #include "connection_manager.hpp"
 #include "request_handler.hpp"
+#include <asio.hpp>
+#include <string>
+
 
 namespace http {
 namespace server {
 
 /// The top-level class of the HTTP server.
-class server
-{
+class server {
 public:
-  server(const server&) = delete;
-  server& operator=(const server&) = delete;
+  server(const server &) = delete;
+  server &operator=(const server &) = delete;
 
   /// Construct the server to listen on the specified TCP address and port, and
   /// serve up files from the given directory.
-  explicit server(const std::string& address, const std::string& port,
-      const std::string& doc_root);
+  explicit server(const std::string &address, const std::string &port,
+                  const std::string &doc_root);
 
   /// Run the server's io_context loop.
   void run();
@@ -52,10 +42,10 @@ private:
   asio::ip::tcp::acceptor m_acceptor;
 
   /// The connection manager which owns all live connections.
-  connection_manager connection_manager_;
+  std::shared_ptr<connection_manager> m_connection_manager;
 
   /// The handler for all incoming requests.
-  request_handler request_handler_;
+  std::shared_ptr<request_handler> m_request_handler;
 };
 
 } // namespace server

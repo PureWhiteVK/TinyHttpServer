@@ -1,0 +1,13 @@
+{
+  "deflated": true,
+  "headers": {
+    "x-forwarded-proto": "https",
+    "x-forwarded-port": "443",
+    "host": "postman-echo.com",
+    "x-amzn-trace-id": "Root=1-64e76a58-5b07d60812b388eb72e5c7c6",
+    "user-agent": "python-requests/2.28.2",
+    "accept-encoding": "gzip, deflate, br",
+    "accept": "*/*"
+  },
+  "method": "GET"
+}

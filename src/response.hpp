@@ -1,30 +1,16 @@
-//
-// reply.hpp
-// ~~~~~~~~~
-//
-// Copyright (c) 2003-2023 Christopher M. Kohlhoff (chris at kohlhoff dot com)
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
-//
+#pragma once
 
-#ifndef HTTP_REPLY_HPP
-#define HTTP_REPLY_HPP
-
+#include <asio.hpp>
 #include <string>
 #include <vector>
-#include <asio.hpp>
-#include "header.hpp"
 
 namespace http {
 namespace server {
 
 /// A reply to be sent to a client.
-struct response
-{
+struct response {
   /// The status of the reply.
-  enum status_type
-  {
+  enum status_type {
     ok = 200,
     created = 201,
     accepted = 202,
@@ -44,7 +30,7 @@ struct response
   } status;
 
   /// The headers to be included in the reply.
-  std::vector<header> headers;
+  std::unordered_map<std::string, std::string> headers;
 
   /// The content to be sent in the reply.
   std::string content;
@@ -54,11 +40,16 @@ struct response
   /// not be changed until the write operation has completed.
   std::vector<asio::const_buffer> to_buffers();
 
+  void clear() {
+    content.clear();
+    headers.clear();
+  }
+
   /// Get a stock reply.
-  static response default_response(status_type status);
+  static void build_default_response(std::shared_ptr<response> rep,
+                                     status_type status,
+                                     bool keep_alive = false);
 };
 
 } // namespace server
 } // namespace http
-
-#endif // HTTP_REPLY_HPP

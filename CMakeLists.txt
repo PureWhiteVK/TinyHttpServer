@@ -13,6 +13,8 @@ if(WIN32)
     add_definitions(-D_WIN32_WINNT=${win_ver} -DWINVER=${win_ver})
 endif()
 
+cmake_path(SET DATA_PATH NORMALIZE ${PROJECT_SOURCE_DIR}/data)
+
 add_subdirectory(extern)
 add_subdirectory(src)
 add_subdirectory(test)

@@ -1,0 +1,14 @@
+POST /test HTTP/1.1
+Host: foo.example
+Content-Type: multipart/form-data;boundary="boundary"
+Content-Disposition:   form-data;   name="field2";   filename="example.txt"  
+
+--boundary
+Content-Disposition: form-data; name="field1"
+
+value1
+--boundary
+Content-Disposition: form-data; name="field2"; filename="example.txt"
+
+value2
+--boundary--

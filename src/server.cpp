@@ -1,27 +1,17 @@
-//
-// server.cpp
-// ~~~~~~~~~~
-//
-// Copyright (c) 2003-2023 Christopher M. Kohlhoff (chris at kohlhoff dot com)
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
-//
-
 #include "server.hpp"
 #include <signal.h>
 #include <spdlog/spdlog.h>
 #include <string>
 #include <utility>
 
-
 namespace http {
 namespace server {
 
 server::server(const std::string &address, const std::string &port,
                const std::string &doc_root)
-    : m_context(1), m_signal_set(m_context), m_acceptor(m_context),
-      connection_manager_(), request_handler_(doc_root) {
+    : m_context(1), m_signal_set(m_context), m_acceptor(m_context) {
+  m_connection_manager = std::make_shared<connection_manager>();
+  m_request_handler = std::make_shared<request_handler>(doc_root);
   // Register to handle the signals that indicate when the server should exit.
   // It is safe to register for the same signal multiple times in a program,
   // provided all registration for the specified signal is made through Asio.
@@ -66,8 +56,8 @@ void server::do_accept() {
         }
 
         if (!ec) {
-          connection_manager_.start(std::make_shared<connection>(
-              std::move(socket), connection_manager_, request_handler_));
+          m_connection_manager->start(std::make_shared<connection>(
+              std::move(socket), m_connection_manager, m_request_handler));
         }
 
         do_accept();
@@ -81,7 +71,7 @@ void server::do_await_stop() {
     // call will exit.
     spdlog::info("receive signal: {}, server exit!", signo);
     m_acceptor.close();
-    connection_manager_.stop_all();
+    m_connection_manager->stop_all();
   });
 }
 

@@ -68,7 +68,7 @@ private:
   request_parser request_parser_;
 
   /// The reply to be sent back to the client.
-  reply reply_;
+  response reply_;
 };
 
 typedef std::shared_ptr<connection> connection_ptr;
