@@ -1,8 +1,8 @@
 #pragma once
 
 #include <asio.hpp>
+#include <list>
 #include <string>
-#include <vector>
 
 namespace http {
 namespace server {
@@ -38,17 +38,18 @@ struct response {
   /// Convert the reply into a vector of buffers. The buffers do not own the
   /// underlying memory blocks, therefore the reply object must remain valid and
   /// not be changed until the write operation has completed.
-  std::vector<asio::const_buffer> to_buffers();
+  void to_buffers(std::list<asio::const_buffer> &buffers);
 
   void clear() {
     content.clear();
     headers.clear();
   }
 
+  void update(bool keep_alive);
+
   /// Get a stock reply.
   static void build_default_response(std::shared_ptr<response> rep,
-                                     status_type status,
-                                     bool keep_alive = false);
+                                     status_type status);
 };
 
 } // namespace server

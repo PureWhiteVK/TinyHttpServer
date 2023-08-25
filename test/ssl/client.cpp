@@ -48,6 +48,8 @@ private:
     X509 *cert = X509_STORE_CTX_get_current_cert(ctx.native_handle());
     X509_NAME_oneline(X509_get_subject_name(cert), subject_name, 256);
     spdlog::info("verifying {}", subject_name);
+    // preverified = false;
+    // spdlog::info("preverified: {}",preverified);
     return preverified;
   }
 
@@ -122,7 +124,7 @@ int main(int argc, char *argv[]) {
     tcp::resolver resolver(io_context);
     auto endpoints = resolver.resolve(argv[1], argv[2]);
 
-    asio::ssl::context ctx(asio::ssl::context::sslv23);
+    asio::ssl::context ctx(asio::ssl::context::tlsv12);
     spdlog::info("load ssl private key");
     ctx.load_verify_file("ca.pem");
 

@@ -1,15 +1,16 @@
-#ifndef HTTP_SERVER_HPP
-#define HTTP_SERVER_HPP
+#pragma once
 
-#include "connection.hpp"
-#include "connection_manager.hpp"
-#include "request_handler.hpp"
 #include <asio.hpp>
+#include <asio/ssl.hpp>
+#include <filesystem>
+#include <optional>
 #include <string>
-
 
 namespace http {
 namespace server {
+
+class connection_manager;
+class request_handler;
 
 /// The top-level class of the HTTP server.
 class server {
@@ -19,8 +20,12 @@ public:
 
   /// Construct the server to listen on the specified TCP address and port, and
   /// serve up files from the given directory.
-  explicit server(const std::string &address, const std::string &port,
-                  const std::string &doc_root);
+  explicit server(std::string_view address, std::string_view port,
+                  const std::filesystem::path &doc_root,
+                  const std::filesystem::path &cert_path =
+                      std::filesystem::path(DATA_PATH) / "CA/cert.pem",
+                  const std::filesystem::path &key_path =
+                      std::filesystem::path(DATA_PATH) / "CA/key.pem");
 
   /// Run the server's io_context loop.
   void run();
@@ -28,9 +33,6 @@ public:
 private:
   /// Perform an asynchronous accept operation.
   void do_accept();
-
-  /// Wait for a request to stop the server.
-  void do_await_stop();
 
   /// The io_context used to perform asynchronous operations.
   asio::io_context m_context;
@@ -46,9 +48,10 @@ private:
 
   /// The handler for all incoming requests.
   std::shared_ptr<request_handler> m_request_handler;
+
+  /// ssl context
+  std::optional<asio::ssl::context> m_ssl_context;
 };
 
 } // namespace server
 } // namespace http
-
-#endif // HTTP_SERVER_HPP

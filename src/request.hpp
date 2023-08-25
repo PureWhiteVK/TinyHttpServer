@@ -1,18 +1,16 @@
-#ifndef HTTP_REQUEST_HPP
-#define HTTP_REQUEST_HPP
+#pragma once
 
 #include <string>
 #include <unordered_map>
-
-#include "string_utils.hpp"
 
 namespace http {
 namespace server {
 
 /// A request received from a client.
-class request {
+struct request {
 public:
   std::string method{};
+  // this may be parsed?
   std::string request_target{};
   int http_version_major{};
   int http_version_minor{};
@@ -20,25 +18,18 @@ public:
   bool keep_alive{};
   size_t content_length{};
 
-  void post_parsing() {
+  void update() {
     keep_alive = get_keep_alive();
     content_length = get_content_length();
   }
 
-private:
-  bool get_keep_alive() {
-    return headers.find("Connection") != headers.end() &&
-           lower(headers["Connection"]) == "keep-alive";
-  }
+  void clear() { headers.clear(); }
 
-  size_t get_content_length() {
-    return headers.find("Content-Length") == headers.end()
-               ? 0
-               : std::stoull(headers["Content-Length"]);
-  }
+private:
+  bool get_keep_alive();
+
+  size_t get_content_length();
 };
 
 } // namespace server
 } // namespace http
-
-#endif // HTTP_REQUEST_HPP

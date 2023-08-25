@@ -1,14 +1,23 @@
 #include "server.hpp"
+#include "connection.hpp"
+#include "connection_manager.hpp"
+#include "request_handler.hpp"
+#include "ssl_connection.hpp"
+
+#include <iostream>
 #include <signal.h>
 #include <spdlog/spdlog.h>
 #include <string>
 #include <utility>
 
+namespace fs = std::filesystem;
+
 namespace http {
 namespace server {
 
-server::server(const std::string &address, const std::string &port,
-               const std::string &doc_root)
+server::server(std::string_view address, std::string_view port,
+               const fs::path &doc_root, const fs::path &cert_path,
+               const fs::path &key_path)
     : m_context(1), m_signal_set(m_context), m_acceptor(m_context) {
   m_connection_manager = std::make_shared<connection_manager>();
   m_request_handler = std::make_shared<request_handler>(doc_root);
@@ -21,7 +30,38 @@ server::server(const std::string &address, const std::string &port,
   signals_.add(SIGQUIT);
 #endif // defined(SIGQUIT)
 
-  do_await_stop();
+  m_signal_set.async_wait([this](std::error_code /*ec*/, int signo) {
+    // The server is stopped by cancelling all outstanding asynchronous
+    // operations. Once all operations have finished the io_context::run()
+    // call will exit.
+    spdlog::info("receive signal: {}, server exit!", signo);
+    m_acceptor.close();
+    m_connection_manager->stop_all();
+  });
+
+  if (fs::exists(cert_path) && fs::exists(key_path)) {
+    spdlog::info("enable SSL/TLS");
+    // sslv23 means generic SSL/TLS (support both)
+    m_ssl_context = asio::ssl::context(asio::ssl::context::sslv23);
+    m_ssl_context->set_options(asio::ssl::context::default_workarounds |
+                               asio::ssl::context::single_dh_use);
+    asio::error_code err;
+    m_ssl_context->use_certificate_file(cert_path.u8string().c_str(),
+                                        asio::ssl::context::file_format::pem,
+                                        err);
+    if (err) {
+      throw std::runtime_error(
+          fmt::format("[file: {},line: {}] {}: {}", __FILE__, __LINE__,
+                      err.category().name(), err.message()));
+    }
+    m_ssl_context->use_private_key_file(
+        key_path.u8string().c_str(), asio::ssl::context::file_format::pem, err);
+    if (err) {
+      throw std::runtime_error(
+          fmt::format("[file: {},line: {}] {}: {}", __FILE__, __LINE__,
+                      err.category().name(), err.message()));
+    }
+  }
 
   // Open the acceptor with the option to reuse the address (i.e. SO_REUSEADDR).
   asio::ip::tcp::resolver resolver(m_context);
@@ -30,11 +70,12 @@ server::server(const std::string &address, const std::string &port,
   m_acceptor.set_option(asio::ip::tcp::acceptor::reuse_address(true));
   m_acceptor.bind(endpoint);
   m_acceptor.listen();
-  std::string address_str{endpoint.address().to_string()};
+  std::string address_str = endpoint.address().to_string();
   if (address_str == "0.0.0.0") {
     address_str = "localhost";
   }
-  spdlog::info("start server at: http://{}:{}", address_str, endpoint.port());
+  spdlog::info("start server at: {}://{}:{}", m_ssl_context ? "https" : "http",
+               address_str, endpoint.port());
   do_accept();
 }
 
@@ -55,24 +96,26 @@ void server::do_accept() {
           return;
         }
 
-        if (!ec) {
-          m_connection_manager->start(std::make_shared<connection>(
+        if (ec) {
+          spdlog::error("[file:{},line:{}] {}: {}", __FILE__, __LINE__,
+                        ec.category().name(), ec.message());
+          return;
+        }
+
+        spdlog::info("connected: {}:{}",socket.remote_endpoint().address().to_string(),socket.remote_endpoint().port());
+
+        if (m_ssl_context) {
+          ssl_connection::ssl_stream stream(std::move(socket),
+                                            m_ssl_context.value());
+          m_connection_manager->start(ssl_connection::create(
+              std::move(stream), m_connection_manager, m_request_handler));
+        } else {
+          m_connection_manager->start(connection::create(
               std::move(socket), m_connection_manager, m_request_handler));
         }
 
         do_accept();
       });
-}
-
-void server::do_await_stop() {
-  m_signal_set.async_wait([this](std::error_code /*ec*/, int signo) {
-    // The server is stopped by cancelling all outstanding asynchronous
-    // operations. Once all operations have finished the io_context::run()
-    // call will exit.
-    spdlog::info("receive signal: {}, server exit!", signo);
-    m_acceptor.close();
-    m_connection_manager->stop_all();
-  });
 }
 
 } // namespace server

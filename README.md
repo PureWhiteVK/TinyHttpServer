@@ -5,7 +5,6 @@ tiny c++ http server implementation with asio
 
 - asio (without boost)
 - spdlog
-- json
 
 # HTTP message format
 
@@ -43,7 +42,9 @@ tchar          = "!" / "#" / "$" / "%" / "&" / "'" / "*"
 # TODO
 
 - [x] Add HTTP/1.0 (just GET request) Demo from boost::asio example
-- [ ] Add HTTP/1.1 implementation (GET + POST)
-- [ ] Add HTTPS implementation with asio::ssl
+- [x] Add HTTP/1.1 implementation (Keep-Alive)
+- [x] Add HTTPS implementation with asio::ssl
 - [ ] Add mysql connection (c++ connector) like TinyWebServer
 - [ ] Add pressure test compared with [TinyWebServer](https://github.com/qinguoyi/TinyWebServer)
+- [ ] Add Transfer-Encoding: chunk implementation
+- [ ] Add HTTP router algorithm (prefix tree)

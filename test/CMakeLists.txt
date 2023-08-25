@@ -20,8 +20,12 @@ add_subdirectory(ssl)
 add_subdirectory(http/server)
 
 add_executable(test_request_parser test_request_parser.cpp)
-target_sources(test_request_parser PRIVATE http/server/request_parser.cpp)
-target_include_directories(test_request_parser PRIVATE http/server)
+target_sources(test_request_parser PRIVATE 
+    ${PROJECT_SOURCE_DIR}/src/request.cpp 
+    ${PROJECT_SOURCE_DIR}/src/request_parser.cpp
+    ${PROJECT_SOURCE_DIR}/src/string_utils.cpp
+)
+target_include_directories(test_request_parser PRIVATE ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries(test_request_parser spdlog::spdlog)
 target_compile_definitions(test_request_parser PRIVATE -DDATA_PATH="${DATA_PATH}")
 set_property(TARGET test_request_parser PROPERTY CXX_STANDARD 17)

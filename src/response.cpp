@@ -1,4 +1,5 @@
 #include "response.hpp"
+
 #include <string>
 
 namespace http {
@@ -30,10 +31,10 @@ std::string_view get_status_line(response::status_type status) {
   return mappings[status];
 }
 
-std::vector<asio::const_buffer> response::to_buffers() {
+void response::to_buffers(std::list<asio::const_buffer> &buffers) {
   static std::string_view COLON_SP = ": ";
   static std::string_view CRLF = "\r\n";
-  std::vector<asio::const_buffer> buffers;
+  // sizes.emplace_back_back(0);
   buffers.emplace_back(asio::buffer(get_status_line(status)));
   for (const auto &[name, value] : headers) {
     buffers.emplace_back(asio::buffer(name));
@@ -43,7 +44,6 @@ std::vector<asio::const_buffer> response::to_buffers() {
   }
   buffers.emplace_back(asio::buffer(CRLF));
   buffers.emplace_back(asio::buffer(content));
-  return buffers;
 }
 
 std::string_view get_default_response_content(response::status_type status) {
@@ -125,11 +125,15 @@ std::string_view get_default_response_content(response::status_type status) {
 }
 
 void response::build_default_response(std::shared_ptr<response> rep,
-                                      status_type status, bool keep_alive) {
-  rep->clear();
+                                      status_type status) {
   rep->status = status;
   rep->content = get_default_response_content(status);
   rep->headers["Content-Type"] = "text/html";
+}
+
+void response::update(bool keep_alive) {
+  headers["Content-Length"] = std::to_string(content.size());
+  headers["Connection"] = keep_alive ? "keep-alive" : "close";
 }
 
 } // namespace server

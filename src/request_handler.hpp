@@ -4,7 +4,6 @@
 #include <spdlog/spdlog.h>
 #include <string>
 
-
 namespace http {
 namespace server {
 
@@ -20,13 +19,14 @@ public:
   request_handler &operator=(const request_handler &) = delete;
 
   /// Construct with a directory containing files to be served.
-  explicit request_handler(std::string_view doc_root)
-      : m_static_dir(std::filesystem::u8path(doc_root)) {
-    spdlog::info("document root: {}", doc_root);
+  explicit request_handler(const std::filesystem::path& doc_root)
+      : m_static_dir(doc_root) {
+    spdlog::info("document root: {}", doc_root.u8string());
   }
 
   /// Handle a request and produce a reply.
-  void handle_request(const request &req, std::shared_ptr<response> rep, bool keep_alive);
+  void handle_request(std::shared_ptr<request> req,
+                      std::shared_ptr<response> rep);
 
 private:
   /// The directory containing the files to be served.
