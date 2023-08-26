@@ -46,9 +46,7 @@ server::server(std::string_view address, std::string_view port,
     // sslv23 means generic SSL/TLS (support both)
     // SSLv2 is too old and insecure, so we disable support for it!
     m_ssl_context = asio::ssl::context(asio::ssl::context::sslv23);
-    m_ssl_context->set_options(asio::ssl::context::default_workarounds |
-                               asio::ssl::context::no_sslv2 | asio::ssl::context::no_tlsv1_3 |
-                               asio::ssl::context::single_dh_use);
+    m_ssl_context->set_options(asio::ssl::context::default_workarounds);
     asio::error_code err;
     m_ssl_context->use_certificate_file(cert_path.u8string().c_str(),
                                         asio::ssl::context::file_format::pem,

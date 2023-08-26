@@ -22,6 +22,9 @@ void ssl_connection::stop() {
   m_stream.lowest_layer().close(err);
 }
 
+// error from: https://www.cnblogs.com/langtianya/p/6648100.html
+// https://ask.wireshark.org/question/10060/keep-alive-packets-after-fin/
+
 void ssl_connection::shutdown() {
   // 此处 shutdown 会让客户端主动关闭连接，由于会发送连接，需要异步 shutdown
   spdlog::info("perform async SSL shutdown");
@@ -31,7 +34,10 @@ void ssl_connection::shutdown() {
       return;
     }
     spdlog::warn("SSL shutdown timeout after 30 seconds, stop right now!");
-    m_manager->stop(self);
+    // asio::error_code err;
+    m_stream.lowest_layer().shutdown(asio::ip::tcp::socket::shutdown_both, err);
+    spdlog::warn("shutdown {}: {}", err.category().name(), err.message());
+    // m_manager->stop(self);
   });
   m_stream.async_shutdown(
       [this, self = shared_from_this()](asio::error_code /* err */) {
