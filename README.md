@@ -48,3 +48,5 @@ tchar          = "!" / "#" / "$" / "%" / "&" / "'" / "*"
 - [ ] Add pressure test compared with [TinyWebServer](https://github.com/qinguoyi/TinyWebServer)
 - [ ] Add Transfer-Encoding: chunk implementation
 - [ ] Add HTTP router algorithm (prefix tree)
+- [ ] Add streaming response implementation
+- [ ] Deal with sticky packet problem (easy case in HTTP)

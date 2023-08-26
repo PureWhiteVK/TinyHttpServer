@@ -60,6 +60,9 @@ void request_handler::handle_request(std::shared_ptr<request> req,
 
   // Fill out the reply to be sent to the client.
   // TODO: 此处我们发送文件是先将文件全部读取到内存中，然后发送给后端，这样感觉有点整蛊（万一我们要发送很大的文件怎么办？）
+  // TODO: 此处需要实现边读取文件，边发送请求，要不然内存占用太高了
+  // 提供一个回调来加载数据？
+  // we should implement a new streaming response
   rep->status = response::ok;
   std::array<char, 512> buf;
   while (!is.eof()) {

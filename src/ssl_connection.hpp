@@ -7,9 +7,10 @@ namespace server {
 
 class ssl_connection : public base_connection {
 public:
-  using ssl_stream = asio::ssl::stream<asio::ip::tcp::socket>;
+  using timer = asio::steady_timer;
+  using stream = asio::ssl::stream<asio::ip::tcp::socket>;
   static std::shared_ptr<ssl_connection>
-  create(ssl_stream stream, std::shared_ptr<connection_manager> manager,
+  create(stream stream, std::shared_ptr<connection_manager> manager,
          std::shared_ptr<request_handler> handler) {
     return std::shared_ptr<ssl_connection>(
         new ssl_connection(std::move(stream), manager, handler));
@@ -19,7 +20,7 @@ public:
   virtual void shutdown();
 
 protected:
-  explicit ssl_connection(ssl_stream stream,
+  explicit ssl_connection(stream stream,
                           std::shared_ptr<connection_manager> manager,
                           std::shared_ptr<request_handler> handler);
 
@@ -27,10 +28,16 @@ protected:
   virtual void do_write();
 
   void do_handshake();
-  void on_handshaked(std::error_code err);
+  void on_handshaked(asio::error_code err);
+
+  void update_expire_time();
 
 protected:
-  ssl_stream m_stream;
+  stream m_stream;
+  timer m_timer;
+  // timer::time_point m_expire_time{};
+  // 无连接 15s 后关闭连接
+  static constexpr auto TIMEOUT = std::chrono::seconds(5);
 };
 } // namespace server
 } // namespace http

@@ -2,8 +2,6 @@
 #include <array>
 #include <asio.hpp>
 #include <memory>
-#include <stdexcept>
-#include <system_error>
 #include <list>
 
 namespace http {
@@ -34,19 +32,19 @@ protected:
 
   void get_send_buffers();
 
-  void on_data_received(std::error_code err, size_t bytes_transferred);
-  void on_data_sent(std::error_code err, size_t bytes_transferred);
+  void on_data_received(asio::error_code err, size_t bytes_transferred);
+  void on_data_sent(asio::error_code err, size_t bytes_transferred);
 
 protected:
   std::shared_ptr<connection_manager> m_manager{};
   std::shared_ptr<request_handler> m_handler{};
   std::shared_ptr<request_parser> m_parser{};
 
+  // receive buffer
   std::array<char, 8192> m_buffer{};
 
-  // for o(1) push_back and o(1) pop_front and support begin()/end() iteration
+  // for o(1) push_back and o(1) pop_front and begin()/end() iteration
   std::list<asio::const_buffer> m_send_buffers{};
-  std::size_t m_send_idx{};
 
   std::shared_ptr<request> m_request{};
   std::shared_ptr<response> m_response{};

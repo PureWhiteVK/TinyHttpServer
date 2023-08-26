@@ -39,11 +39,15 @@ server::server(std::string_view address, std::string_view port,
     m_connection_manager->stop_all();
   });
 
-  if (fs::exists(cert_path) && fs::exists(key_path)) {
+  static constexpr bool enable_ssl = true;
+
+  if (enable_ssl && fs::exists(cert_path) && fs::exists(key_path)) {
     spdlog::info("enable SSL/TLS");
     // sslv23 means generic SSL/TLS (support both)
+    // SSLv2 is too old and insecure, so we disable support for it!
     m_ssl_context = asio::ssl::context(asio::ssl::context::sslv23);
     m_ssl_context->set_options(asio::ssl::context::default_workarounds |
+                               asio::ssl::context::no_sslv2 | asio::ssl::context::no_tlsv1_3 |
                                asio::ssl::context::single_dh_use);
     asio::error_code err;
     m_ssl_context->use_certificate_file(cert_path.u8string().c_str(),
@@ -65,8 +69,15 @@ server::server(std::string_view address, std::string_view port,
 
   // Open the acceptor with the option to reuse the address (i.e. SO_REUSEADDR).
   asio::ip::tcp::resolver resolver(m_context);
+  auto endpoints = resolver.resolve(address, port);
+  for (auto e : endpoints) {
+    spdlog::info("resolved: {}://{}:{}", m_ssl_context ? "https" : "http",
+                 e.endpoint().address().to_string(), e.endpoint().port());
+  }
   asio::ip::tcp::endpoint endpoint = *resolver.resolve(address, port).begin();
   m_acceptor.open(endpoint.protocol());
+  // first true means enable linger, the second means timeout value
+  // m_acceptor.set_option(asio::ip::tcp::acceptor::linger(true, 30));
   m_acceptor.set_option(asio::ip::tcp::acceptor::reuse_address(true));
   m_acceptor.bind(endpoint);
   m_acceptor.listen();
@@ -89,7 +100,7 @@ void server::run() {
 
 void server::do_accept() {
   m_acceptor.async_accept(
-      [this](std::error_code ec, asio::ip::tcp::socket socket) {
+      [this](asio::error_code ec, asio::ip::tcp::socket socket) {
         // Check whether the server was stopped by a signal before this
         // completion handler had a chance to run.
         if (!m_acceptor.is_open()) {
@@ -102,13 +113,14 @@ void server::do_accept() {
           return;
         }
 
-        spdlog::info("connected: {}:{}",socket.remote_endpoint().address().to_string(),socket.remote_endpoint().port());
+        spdlog::info("connected: {}:{}",
+                     socket.remote_endpoint().address().to_string(),
+                     socket.remote_endpoint().port());
 
         if (m_ssl_context) {
-          ssl_connection::ssl_stream stream(std::move(socket),
-                                            m_ssl_context.value());
           m_connection_manager->start(ssl_connection::create(
-              std::move(stream), m_connection_manager, m_request_handler));
+              ssl_connection::stream(std::move(socket), m_ssl_context.value()),
+              m_connection_manager, m_request_handler));
         } else {
           m_connection_manager->start(connection::create(
               std::move(socket), m_connection_manager, m_request_handler));

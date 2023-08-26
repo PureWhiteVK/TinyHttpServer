@@ -25,6 +25,7 @@ public:
   void stop_all();
 
 private:
+  // TODO: 此处使用 priority_queue 来进行管理 ?
   std::unordered_set<connection_ptr> m_connections;
 };
 

@@ -17,9 +17,9 @@ base_connection::base_connection(std::shared_ptr<connection_manager> manager,
       m_request(std::make_shared<request>()),
       m_response(std::make_shared<response>()) {}
 
-void base_connection::on_data_received(std::error_code err,
+void base_connection::on_data_received(asio::error_code err,
                                        size_t bytes_transferred) {
-  if (err && err != asio::error::operation_aborted) {
+  if (err) {
     spdlog::error("[{}:{}] {}: {}", __FILE__, __LINE__, err.category().name(),
                   err.message());
     m_manager->stop(shared_from_this());
@@ -58,7 +58,6 @@ void base_connection::on_data_received(std::error_code err,
 }
 
 void base_connection::get_send_buffers() {
-  m_send_idx = 0;
   m_response->update(m_keep_alive);
   m_response->to_buffers(m_send_buffers);
   std::string_view response_header =
@@ -73,22 +72,19 @@ void base_connection::clear() {
   m_response->clear();
 }
 
-void base_connection::on_data_sent(std::error_code err,
+void base_connection::on_data_sent(asio::error_code err,
                                    size_t bytes_transferred) {
-  if (err && err != asio::error::operation_aborted) {
+  if (err) {
     spdlog::error("[{}:{}] {}: {}", __FILE__, __LINE__, err.category().name(),
                   err.message());
     m_manager->stop(shared_from_this());
     return;
   }
   spdlog::info("send: {} bytes", bytes_transferred);
-  // we have to keep writing here
-  // 需要维护一个发送数据的大小前缀和，
   while (!m_send_buffers.empty() &&
          m_send_buffers.front().size() <= bytes_transferred) {
-    auto buffer = m_send_buffers.front();
+    bytes_transferred -= m_send_buffers.front().size();
     m_send_buffers.pop_front();
-    bytes_transferred -= buffer.size();
   }
   if (m_send_buffers.empty()) {
     spdlog::info("finish sending");
@@ -102,11 +98,11 @@ void base_connection::on_data_sent(std::error_code err,
     return;
   }
   // 之后我们可以计算剩余的偏移量
-  auto new_ptr =
-      reinterpret_cast<const uint8_t *>(m_send_buffers.front().data()) +
-      bytes_transferred;
-  m_send_buffers.front() = {reinterpret_cast<const void *>(new_ptr),
-                            m_send_buffers.front().size() - bytes_transferred};
+  m_send_buffers.front() = {
+      reinterpret_cast<const void *>(
+          reinterpret_cast<const uint8_t *>(m_send_buffers.front().data()) +
+          bytes_transferred),
+      m_send_buffers.front().size() - bytes_transferred};
   do_write();
 }
 } // namespace server
